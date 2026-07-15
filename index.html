@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CasinoForge - Premium Discord Bot</title>
+    <style>
+        :root {
+            /* Theme variables that change dynamically */
+            --primary: #f39c12;
+            --primary-hover: #e67e22;
+            --primary-rgb: 243, 156, 18;
+            --bg-dark: #070505;
+            --card-bg: rgba(22, 20, 24, 0.75);
+            --text-light: #f5f3f4;
+            --text-muted: #a4a6b0;
+            --theme-shadow: 0 0 25px rgba(243, 156, 18, 0.15);
+        }
+
+        /* Ambient background transitions */
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Canvas Backdrop layer */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Radial overlay for extra depth */
+        .ambient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.8) 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism Main Card */
+        .container {
+            text-align: center;
+            background: var(--card-bg);
+            padding: 40px 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(var(--primary-rgb), 0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), var(--theme-shadow);
+            max-width: 460px;
+            width: 100%;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Mobile specific spacing fixes */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 30px 20px; }
+            h1 { font-size: 32px; }
+        }
+
+        /* Slots spinning logo */
+        .logo-container {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 25px;
+            cursor: pointer;
+            perspective: 1000px;
+        }
+
+        .logo-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), #111);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+        }
+
+        .logo-container:hover .logo-placeholder {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 0 40px rgba(var(--primary-rgb), 0.6);
+        }
+
+        /* Slot win popups */
+        .spin-indicator {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: #fff;
+            color: #000;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            text-transform: uppercase;
+            animation: bounce 1.5s infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 38px;
+            font-weight: 850;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff 30%, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: background 0.5s ease;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        /* Navigation / View Tabs */
+        .tab-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            background: rgba(0,0,0,0.3);
+            padding: 6px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 13px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            background: rgba(var(--primary-rgb), 0.15);
+            color: var(--primary);
+            box-shadow: inset 0 0 10px rgba(var(--primary-rgb), 0.1);
+        }
+
+        /* Visual Panels */
+        .panel {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Action Buttons */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 15px 0;
+            margin: 12px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Invite button has a beautiful animated glow */
+        .btn-invite {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: #000;
+            box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.35);
+        }
+
+        .btn-invite::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.25), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            pointer-events: none;
+        }
+
+        .btn-invite:hover::after {
+            left: 120%;
+        }
+
+        .btn-invite:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(var(--primary-rgb), 0.55);
+            filter: brightness(1.1);
+        }
+
+        .btn-invite:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: #f5f3f4;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            transform: translateY(-2px);
+            border-color: rgba(var(--primary-rgb), 0.3);
+        }
+
+        /* Ambience Switcher Floating Dock */
+        .ambience-dock {
+            margin-top: 25px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: inline-flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .ambience-dock-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .swatches {
+            display: flex;
+            justify-content: space-around;
+            gap: 8px;
+        }
+
+        .swatch-btn {
+            flex: 1;
+            padding: 8px 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .swatch-btn .color-indicator {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .swatch-btn[data-theme="gold"] .color-indicator { background: #f39c12; }
+        .swatch-btn[data-theme="cyber"] .color-indicator { background: #00f0ff; }
+        .swatch-btn[data-theme="emerald"] .color-indicator { background: #2ecc71; }
+        .swatch-btn[data-theme="crimson"] .color-indicator { background: #e74c3c; }
+
+        .swatch-btn:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .swatch-btn.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.2);
+        }
+
+        /* Interactive Bot Simulator panel styling */
+        .discord-simulator {
+            background: #2b2d31; /* Discord precise color */
+            border-radius: 14px;
+            border: 1px solid #1e1f22;
+            padding: 16px;
+            text-align: left;
+            font-family: 'gg sans', 'Segoe UI', sans-serif;
+            font-size: 14px;
+            margin-bottom: 15px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .sim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #35363c;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .sim-title {
+            color: #dbdee1;
+            font-weight: 700;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sim-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #23a55a; /* Discord online green */
+        }
+
+        .chip-counter {
+            background: rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            border: 1px solid rgba(var(--primary-rgb), 0.2);
+        }
+
+        .sim-commands-list {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .command-badge {
+            background: #404249;
+            color: #dbdee1;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .command-badge:hover {
+            background: #5865F2; /* Discord blurple */
+            color: #fff;
+            transform: scale(1.03);
+        }
+
+        /* Mock Discord Message styling */
+        .discord-msg {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .discord-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #2b2d31);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .discord-content {
+            flex: 1;
+        }
+
+        .discord-author {
+            font-weight: 600;
+            color: #f2f3f5;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .bot-tag {
+            background: #5865f2;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 4px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        /* Discord Embed */
+        .discord-embed {
+            background: #1e1f22;
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 4px;
+            max-width: 100%;
+        }
+
+        .embed-title {
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .embed-desc {
+            color: #dbdee1;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-line;
+        }
+
+        /* Simulated discord action button triggers */
+        .embed-buttons {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .discord-btn {
+            background: #4e5058;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .discord-btn:hover {
+            background: #6d6f78;
+        }
+
+        .discord-btn.btn-green { background: #248046; }
+        .discord-btn.btn-green:hover { background: #1a6535; }
+        .discord-btn.btn-red { background: #da373c; }
+        .discord-btn.btn-red:hover { background: #a92b2f; }
+
+        .typing-indicator {
+            color: #949ba4;
+            font-size: 12px;
+            font-style: italic;
+            display: none;
+            margin-top: 8px;
+        }
+
+        /* Modal Popups Configuration */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background-color: #111115;
+            border: 1px solid rgba(var(--primary-rgb), 0.3);
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.9), 0 0 30px rgba(var(--primary-rgb), 0.1);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            animation: modalEntrance 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes modalEntrance {
+            from { transform: scale(0.9) translateY(15px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 480px) {
+            .modal-content { padding: 20px; max-height: 90vh; }
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            color: var(--primary);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 12px;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            text-align: left;
+            padding-right: 5px;
+            line-height: 1.6;
+            color: #d1d1d6;
+            font-size: 14px;
+        }
+
+        .modal-body p {
+            margin: 0 0 15px 0;
+        }
+
+        .modal-body strong {
+            color: #ffffff;
+        }
+
+        .modal-body ul {
+            margin: 0 0 15px 0;
+            padding-left: 20px;
+        }
+
+        .modal-body li {
+            margin-bottom: 5px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 32px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        .modal-body::-webkit-scrollbar { width: 6px; }
+        .modal-body::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        .modal-body::-webkit-scrollbar-thumb { background: rgba(var(--primary-rgb), 0.3); border-radius: 4px; }
+    </style>
+</head>
+<body class="theme-gold">
+
+<!-- Animated dynamic background canvas -->
+<canvas id="bg-canvas"></canvas>
+<div class="ambient-overlay"></div>
+
+<div class="container">
+    <!-- Clickable Interactive Slot Logo -->
+    <div class="logo-container" onclick="spinLogo()" title="Click to spin the slots!">
+        <div class="logo-placeholder" id="logo-icon">🎰</div>
+        <div class="spin-indicator">Spin Me!</div>
+    </div>
+
+    <h1>CasinoForge</h1>
+    <div class="tagline">The ultimate high-stakes casino engine for your Discord community.</div>
+    
+    <!-- View Switcher Tabs -->
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchPanel('portal')" id="tab-portal">
+            ⚡ Bot Portal
+        </button>
+        <button class="tab-btn" onclick="switchPanel('demo')" id="tab-demo">
+            🎲 Play Demo
+        </button>
+    </div>
+
+    <!-- MAIN PORTAL PANEL -->
+    <div id="panel-portal" class="panel active">
+        <!-- Direct Discord OAuth invite to instantly select server without middlemen -->
+        <a href="https://discord.com/oauth2/authorize?client_id=1524862325927182536&permissions=543231040&scope=bot+applications.commands" target="_blank" rel="noopener noreferrer" class="btn btn-invite" id="invite-btn-main">
+            Add to Discord Instantly
+        </a>
+        <a href="#privacypolicy" class="btn btn-secondary">Privacy Policy</a>
+        <a href="#tos" class="btn btn-secondary">Terms of Service</a>
+    </div>
+
+    <!-- DEMO SIMULATOR PANEL -->
+    <div id="panel-demo" class="panel">
+        <div class="discord-simulator">
+            <div class="sim-header">
+                <div class="sim-title">Live Bot Console</div>
+                <div class="chip-counter">💰 <span id="chips-amount">15,000</span> credits</div>
+            </div>
+            
+            <div class="sim-commands-list">
+                <button class="command-badge" onclick="runSimCommand('slots')">/slots</button>
+                <button class="command-badge" onclick="runSimCommand('blackjack')">/blackjack</button>
+                <button class="command-badge" onclick="runSimCommand('coinflip')">/coinflip</button>
+                <button class="command-badge" onclick="runSimCommand('daily')">/daily</button>
+            </div>
+
+            <div class="typing-indicator" id="typing-indicator">CasinoForge is typing...</div>
+
+            <!-- Simulator Chat Message Box -->
+            <div id="sim-message-box">
+                <div class="discord-msg">
+                    <div class="discord-avatar">🎰</div>
+                    <div class="discord-content">
+                        <div class="discord-author">CasinoForge <span class="bot-tag">Bot</span></div>
+                        <div class="discord-embed">
+                            <div class="embed-title">Welcome to the Forge!</div>
+                            <div class="embed-desc">Click any of the command buttons above to test-drive my premium casino capabilities directly inside this web layout! Try your luck with high stakes risk-free.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Ambient Customizer Dock -->
+    <div class="ambience-dock">
+        <div class="ambience-dock-title">Select Ambience</div>
+        <div class="swatches">
+            <button class="swatch-btn active" data-theme="gold" onclick="setTheme('gold')" title="Amber Gold theme">
+                <div class="color-indicator"></div>
+                Gold
+            </button>
+            <button class="swatch-btn" data-theme="cyber" onclick="setTheme('cyber')" title="Neon Cyber theme">
+                <div class="color-indicator"></div>
+                Cyber
+            </button>
+            <button class="swatch-btn" data-theme="emerald" onclick="setTheme('emerald')" title="Emerald VIP theme">
+                <div class="color-indicator"></div>
+                Emerald
+            </button>
+            <button class="swatch-btn" data-theme="crimson" onclick="setTheme('crimson')" title="Crimson Highroller theme">
+                <div class="color-indicator"></div>
+                Crimson
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Privacy Policy Modal -->
+<div id="privacypolicy" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="clearRoute()">&times;</span>
+        <div class="modal-header">Privacy Policy</div>
+        <div class="modal-body">
+            <p><strong>Privacy Policy for CasinoForge-Bot</strong><br>Last Updated: July 2026</p>
+            
+            <p>Dewangga-crypto ("we", "us") operates CasinoForge-Bot. We care about your privacy and only collect the minimum data needed to run the bot.</p>
+            
+            <p><strong>1. Data We Collect</strong></p>
+            <ul>
+                <li><strong>Discord User IDs:</strong> To save your casino balance, inventory, and stats.</li>
+                <li><strong>Server IDs:</strong> To remember bot settings or configurations for a specific server.</li>
+            </ul>
+            
+            <p><strong>2. How We Use Data</strong><br>
+            We only use this data to make the bot work (e.g., loading your balance when you play a casino game). We never sell, share, or use this data for anything outside of the bot's features.</p>
+            
+            <p><strong>3. Data Deletion</strong><br>
+            If you want your data completely deleted from our system, you can contact the developer via GitHub (dewangga-crypto) or remove the bot from your server.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Terms of Service Modal -->
+<div id="tos" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="clearRoute()">&times;</span>
+        <div class="modal-header">Terms of Service</div>
+        <div class="modal-body">
+            <p><strong>Terms of Service for CasinoForge-Bot</strong><br>Last Updated: July 2026</p>
+            
+            <p>Welcome to CasinoForge-Bot ("the Bot"), a Discord application developed by dewangga-crypto ("we", "us", or "our"). By adding the Bot to your Discord server or interacting with it, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use the Bot.</p>
+            
+            <p><strong>1. Eligibility & Discord Terms</strong></p>
+            <ul>
+                <li>You must be at least 13 years old (or the minimum age required in your country) to use Discord and this Bot.</li>
+                <li>You agree to follow the official Discord Terms of Service and Community Guidelines at all times while using the Bot.</li>
+            </ul>
+            
+            <p><strong>2. Fair Play & Bot Economy Rules</strong><br>
+            Because CasinoForge-Bot features a virtual casino and economy system, the following actions are strictly prohibited and may result in a permanent ban from using the Bot:</p>
+            <ul>
+                <li><strong>Exploiting Bugs:</strong> Utilizing any software bugs, glitches, or unintended game mechanics to gain virtual currency, items, or status. You must report any discovered exploits to the developer.</li>
+                <li><strong>Automation & Alts:</strong> Using macro scripts, self-bots, automated systems, or multiple alternative Discord accounts ("alts") to farm currency or automate commands.</li>
+                <li><strong>Real-Money Trading (RMT):</strong> Attempting to buy, sell, or trade virtual currency or items from the Bot for real-world money, real goods, or external services. The Bot's currency has zero real-world value.</li>
+                <li><strong>Harassment & Abuse:</strong> Using the Bot's custom commands or inputs to harass, insult, or disrupt other users.</li>
+            </ul>
+            
+            <p><strong>3. Disclaimers & Service Availability</strong></p>
+            <ul>
+                <li><strong>"As-Is" Basis:</strong> The Bot is provided on an "as-is" and "as-available" basis. We do not guarantee that the Bot will always be online, bug-free, or uninterrupted.</li>
+                <li><strong>Data Resets:</strong> We reserve the right to reset, modify, or balance the virtual economy, user balances, or data at any time without prior notice if it is necessary for maintenance or fair play.</li>
+                <li><strong>Limitation of Liability:</strong> The developer cannot be held liable for any data loss, server disruptions, or negative experiences resulting from the use or downtime of the Bot.</li>
+            </ul>
+            
+            <p><strong>4. Termination of Access</strong><br>
+            We reserve the right to suspend or permanently block your access (or your server's access) to CasinoForge-Bot at our sole discretion, without warning, if you violate these terms or engage in behavior that harms the Bot's community.</p>
+            
+            <p><strong>5. Changes to These Terms</strong><br>
+            We may update these Terms of Service from time to time. Continued use of the Bot after updates are made constitutes your acceptance of the new terms.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const DISCORD_INVITE_URL = "https://discord.com/oauth2/authorize?client_id=1524862325927182536&permissions=543231040&scope=bot+applications.commands";
+
+    // Ambient background themes configuration
+    const themes = {
+        gold: {
+            primary: "#f39c12",
+            primaryHover: "#e67e22",
+            primaryRgb: "243, 156, 18",
+            bgDark: "#0c0907",
+            shadow: "0 0 25px rgba(243, 156, 18, 0.25)",
+            particles: {
+                color: "#f1c40f",
+                speed: 0.8,
+                count: 40,
+                type: "star"
+            }
+        },
+        cyber: {
+            primary: "#00f0ff",
+            primaryHover: "#00b8d4",
+            primaryRgb: "0, 240, 255",
+            bgDark: "#040308",
+            shadow: "0 0 25px rgba(0, 240, 255, 0.25)",
+            particles: {
+                color: "#00f0ff",
+                speed: 1.5,
+                count: 50,
+                type: "digital"
+            }
+        },
+        emerald: {
+            primary: "#2ecc71",
+            primaryHover: "#27ae60",
+            primaryRgb: "46, 204, 113",
+            bgDark: "#040906",
+            shadow: "0 0 25px rgba(46, 204, 113, 0.25)",
+            particles: {
+                color: "#2ecc71",
+                speed: 0.5,
+                count: 35,
+                type: "card"
+            }
+        },
+        crimson: {
+            primary: "#e74c3c",
+            primaryHover: "#c0392b",
+            primaryRgb: "231, 76, 60",
+            bgDark: "#0a0303",
+            shadow: "0 0 25px rgba(231, 76, 60, 0.25)",
+            particles: {
+                color: "#e74c3c",
+                speed: 1.2,
+                count: 45,
+                type: "fire"
+            }
+        }
+    };
+
+    let activeTheme = "gold";
+
+    // Set Theme Function
+    function setTheme(themeKey) {
+        if (!themes[themeKey]) return;
+        activeTheme = themeKey;
+        
+        // Remove current theme class and set new one
+        document.body.className = "theme-" + themeKey;
+
+        // Apply styles to :root dynamically
+        const theme = themes[themeKey];
+        const root = document.documentElement;
+        root.style.setProperty('--primary', theme.primary);
+        root.style.setProperty('--primary-hover', theme.primaryHover);
+        root.style.setProperty('--primary-rgb', theme.primaryRgb);
+        root.style.setProperty('--bg-dark', theme.bgDark);
+        root.style.setProperty('--theme-shadow', theme.shadow);
+
+        // Update swatch active statuses
+        document.querySelectorAll('.swatch-btn').forEach(btn => {
+            if (btn.getAttribute('data-theme') === themeKey) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Clear current background particles to spawn new themed ones instantly
+        initParticles(theme.particles);
+    }
+
+    // Interactive Slot Logo Spin Logic
+    const slotEmojis = ["🎰", "🍒", "🍋", "💎", "🔔", "7️⃣", "👑", "💵", "🎲"];
+    let isSpinning = false;
+
+    function spinLogo() {
+        if (isSpinning) return;
+        isSpinning = true;
+        const logo = document.getElementById("logo-icon");
+        
+        let spins = 0;
+        const maxSpins = 12;
+        const spinInterval = setInterval(() => {
+            const randomEmoji = slotEmojis[Math.floor(Math.random() * slotEmojis.length)];
+            logo.textContent = randomEmoji;
+            logo.style.transform = `scale(1.1) rotate(${Math.sin(spins) * 15}deg)`;
+            spins++;
+            
+            if (spins >= maxSpins) {
+                clearInterval(spinInterval);
+                // Highlight winning emoji or lucky 7
+                const finalEmoji = Math.random() > 0.4 ? "🎰" : slotEmojis[Math.floor(Math.random() * slotEmojis.length)];
+                logo.textContent = finalEmoji;
+                logo.style.transform = "scale(1.2)";
+                
+                // Spawn minor sparkles on the logo container
+                createGlowBurst();
+                
+                setTimeout(() => {
+                    logo.style.transform = "";
+                    isSpinning = false;
+                }, 500);
+            }
+        }, 80);
+    }
+
+    function createGlowBurst() {
+        const logoCont = document.querySelector(".logo-container");
+        for (let i = 0; i < 8; i++) {
+            const spark = document.createElement("div");
+            spark.style.position = "absolute";
+            spark.style.width = "6px";
+            spark.style.height = "6px";
+            spark.style.background = "var(--primary)";
+            spark.style.borderRadius = "50%";
+            spark.style.top = "50%";
+            spark.style.left = "50%";
+            spark.style.pointerEvents = "none";
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 40;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            spark.animate([
+                { transform: "translate(-50%, -50%) scale(1)", opacity: 1 },
+                { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0)`, opacity: 0 }
+            ], {
+                duration: 600,
+                easing: "cubic-bezier(0.1, 0.8, 0.25, 1)"
+            });
+            
+            logoCont.appendChild(spark);
+            setTimeout(() => spark.remove(), 600);
+        }
+    }
+
+    // Switch view panel tabs
+    function switchPanel(panelId) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById('panel-' + panelId).classList.add('active');
+        document.getElementById('tab-' + panelId).classList.add('active');
+    }
+
+    // Live Bot Simulator Engine
+    let userCredits = 15000;
+    let blackjackState = null;
+
+    function runSimCommand(command) {
+        const msgBox = document.getElementById("sim-message-box");
+        const typing = document.getElementById("typing-indicator");
+        
+        // Disable action buttons during interaction for smooth pacing
+        typing.style.display = "block";
+        
+        setTimeout(() => {
+            typing.style.display = "none";
+            let responseHtml = "";
+            
+            if (command === "daily") {
+                const prize = 2500;
+                userCredits += prize;
+                updateChipsDisplay();
+                responseHtml = createDiscordEmbed(
+                    "Daily Allowance Claimed", 
+                    `💰 You successfully claimed your daily allowance of **+${prize.toLocaleString()} Credits**!\n\nYour current account balance: **${userCredits.toLocaleString()} credits**`,
+                    "btn-green"
+                );
+            } 
+            else if (command === "coinflip") {
+                const bet = 1000;
+                if (userCredits < bet) {
+                    responseHtml = createDiscordEmbed("Insufficient Balance", "❌ You do not have enough credits to place a **1,000 credit** coinflip bet. Claim your `/daily` first!");
+                } else {
+                    const win = Math.random() > 0.5;
+                    if (win) {
+                        userCredits += bet;
+                        responseHtml = createDiscordEmbed(
+                            "Coinflip Outcome: WIN! 🪙",
+                            `You bet **1,000 credits** on Heads and won!\n\n**Outcome:** Heads (Won +1,000)\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                            "btn-green"
+                        );
+                    } else {
+                        userCredits -= bet;
+                        responseHtml = createDiscordEmbed(
+                            "Coinflip Outcome: LOST... 🪙",
+                            `You bet **1,000 credits** on Heads and lost.\n\n**Outcome:** Tails (Lost -1,000)\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                            "btn-red"
+                        );
+                    }
+                    updateChipsDisplay();
+                }
+            } 
+            else if (command === "slots") {
+                const bet = 1500;
+                if (userCredits < bet) {
+                    responseHtml = createDiscordEmbed("Insufficient Balance", "❌ You do not have enough credits to spin the **1,500 credit** slots!");
+                } else {
+                    const slotSymbols = ["🍒", "🍋", "🍇", "💎", "👑"];
+                    const r1 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+                    const r2 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+                    const r3 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+                    
+                    const isWin = (r1 === r2 && r2 === r3);
+                    const isPair = (r1 === r2 || r2 === r3 || r1 === r3) && !isWin;
+                    
+                    let payout = 0;
+                    let desc = `🎰 **[ ${r1} | ${r2} | ${r3} ]** 🎰\n\n`;
+                    
+                    if (isWin) {
+                        payout = bet * 5;
+                        userCredits += payout;
+                        desc += `🔥 **JACKPOT!** You matched three identical symbols!\n**Payout:** +${payout.toLocaleString()} Credits`;
+                    } else if (isPair) {
+                        payout = Math.floor(bet * 1.5);
+                        userCredits += payout - bet;
+                        desc += `✨ **Double Match!** You matched two symbols!\n**Payout:** +${payout.toLocaleString()} Credits`;
+                    } else {
+                        userCredits -= bet;
+                        desc += `❌ **No Match.** Better luck next time!\n**Lost:** -${bet.toLocaleString()} Credits`;
+                    }
+                    
+                    desc += `\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`;
+                    updateChipsDisplay();
+                    
+                    responseHtml = createDiscordEmbed(
+                        "Forge Slots Machine",
+                        desc,
+                        isWin ? "btn-green" : (isPair ? "btn-green" : "btn-red")
+                    );
+                }
+            }
+            else if (command === "blackjack") {
+                const bet = 2000;
+                if (userCredits < bet) {
+                    responseHtml = createDiscordEmbed("Insufficient Balance", "❌ You do not have enough credits to play **2,000 credit** blackjack!");
+                } else {
+                    // Start game state
+                    const p1 = Math.floor(Math.random() * 10) + 2;
+                    const p2 = Math.floor(Math.random() * 10) + 2;
+                    const d1 = Math.floor(Math.random() * 10) + 2;
+                    
+                    blackjackState = {
+                        bet: bet,
+                        playerScore: p1 + p2,
+                        dealerScore: d1,
+                        active: true
+                    };
+                    
+                    responseHtml = renderBlackjackEmbed();
+                }
+            }
+            
+            msgBox.innerHTML = responseHtml;
+        }, 600);
+    }
+
+    function renderBlackjackEmbed() {
+        let desc = `🃏 **Blackjack Table** 🃏\n\n**Your Hand Value:** ${blackjackState.playerScore}\n**Dealer's Visible Card:** ${blackjackState.dealerScore}\n\nWhat is your play?`;
+        
+        let buttons = `
+            <div class="embed-buttons">
+                <button class="discord-btn btn-green" onclick="playBlackjackAction('hit')">Hit</button>
+                <button class="discord-btn" onclick="playBlackjackAction('stand')">Stand</button>
+            </div>
+        `;
+        
+        return createDiscordEmbed("Active Blackjack Game", desc, "", buttons);
+    }
+
+    function playBlackjackAction(action) {
+        if (!blackjackState || !blackjackState.active) return;
+        
+        const msgBox = document.getElementById("sim-message-box");
+        const typing = document.getElementById("typing-indicator");
+        
+        typing.style.display = "block";
+        
+        setTimeout(() => {
+            typing.style.display = "none";
+            
+            if (action === "hit") {
+                const card = Math.floor(Math.random() * 10) + 2;
+                blackjackState.playerScore += card;
+                
+                if (blackjackState.playerScore > 21) {
+                    // Busted
+                    userCredits -= blackjackState.bet;
+                    updateChipsDisplay();
+                    blackjackState.active = false;
+                    msgBox.innerHTML = createDiscordEmbed(
+                        "Blackjack: BUST! ❌",
+                        `💥 You drew a **${card}** and busted with **${blackjackState.playerScore}** score!\n\n**Lost:** -${blackjackState.bet.toLocaleString()} Credits\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`
+                    );
+                } else {
+                    msgBox.innerHTML = renderBlackjackEmbed();
+                }
+            } else if (action === "stand") {
+                blackjackState.active = false;
+                // Dealer plays
+                while (blackjackState.dealerScore < 17) {
+                    blackjackState.dealerScore += Math.floor(Math.random() * 10) + 2;
+                }
+                
+                let result = "";
+                let colorClass = "";
+                
+                if (blackjackState.dealerScore > 21) {
+                    userCredits += blackjackState.bet;
+                    result = `🎉 **Dealer Busted!** Dealer score is **${blackjackState.dealerScore}**. You win!\n\n**Won:** +${blackjackState.bet.toLocaleString()} Credits`;
+                    colorClass = "btn-green";
+                } else if (blackjackState.playerScore > blackjackState.dealerScore) {
+                    userCredits += blackjackState.bet;
+                    result = `🎉 **You Win!** Your score: **${blackjackState.playerScore}** vs Dealer score: **${blackjackState.dealerScore}**.\n\n**Won:** +${blackjackState.bet.toLocaleString()} Credits`;
+                    colorClass = "btn-green";
+                } else if (blackjackState.playerScore < blackjackState.dealerScore) {
+                    userCredits -= blackjackState.bet;
+                    result = `❌ **Dealer Wins.** Your score: **${blackjackState.playerScore}** vs Dealer score: **${blackjackState.dealerScore}**.\n\n**Lost:** -${blackjackState.bet.toLocaleString()} Credits`;
+                    colorClass = "btn-red";
+                } else {
+                    result = `👔 **Push.** Standard tie. Your score: **${blackjackState.playerScore}** vs Dealer score: **${blackjackState.dealerScore}**.\n\nNo credits lost.`;
+                }
+                
+                updateChipsDisplay();
+                msgBox.innerHTML = createDiscordEmbed(
+                    "Blackjack Result",
+                    `${result}\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`,
+                    colorClass
+                );
+            }
+        }, 500);
+    }
+
+    function updateChipsDisplay() {
+        document.getElementById("chips-amount").textContent = userCredits.toLocaleString();
+    }
+
+    function createDiscordEmbed(title, description, statusClass = "", buttonsHtml = "") {
+        let borderStyle = "";
+        if (statusClass === "btn-green") borderStyle = "border-left-color: #248046;";
+        if (statusClass === "btn-red") borderStyle = "border-left-color: #da373c;";
+        
+        return `
+            <div class="discord-msg">
+                <div class="discord-avatar">🎰</div>
+                <div class="discord-content">
+                    <div class="discord-author">CasinoForge <span class="bot-tag">Bot</span></div>
+                    <div class="discord-embed" style="${borderStyle}">
+                        <div class="embed-title">${title}</div>
+                        <div class="embed-desc">${description}</div>
+                        ${buttonsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Modal shadow click handler to reset paths
+    function handleRouting() {
+        const hash = window.location.hash;
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+
+        if (hash === '#invite') {
+            window.location.hash = '';
+            window.open(DISCORD_INVITE_URL, '_blank');
+        } else if (hash === '#privacypolicy') {
+            document.getElementById('privacypolicy').style.display = 'flex';
+        } else if (hash === '#tos') {
+            document.getElementById('tos').style.display = 'flex';
+        }
+    }
+
+    function clearRoute() {
+        window.location.hash = '';
+    }
+
+    window.addEventListener('hashchange', handleRouting);
+    window.addEventListener('load', handleRouting);
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            clearRoute();
+        }
+    }
+
+    // --- HTML5 Ambient Particles System ---
+    const canvas = document.getElementById("bg-canvas");
+    const ctx = canvas.getContext("2d");
+    let particlesArray = [];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+        constructor(type, colorCode, speedMult) {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 3 + 1.5;
+            this.speedX = (Math.random() - 0.5) * 0.4 * speedMult;
+            this.speedY = - (Math.random() * 0.8 + 0.3) * speedMult;
+            this.color = colorCode;
+            this.opacity = Math.random() * 0.5 + 0.3;
+            this.type = type; // star, digital, card, fire
+            this.rotation = Math.random() * Math.PI;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+            
+            // Random card suit
+            const suits = ["♦", "♥", "♣", "♠"];
+            this.suitSymbol = suits[Math.floor(Math.random() * suits.length)];
+        }
+
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            this.rotation += this.rotationSpeed;
+
+            // Recyclability
+            if (this.y < -30) {
+                this.y = canvas.height + 30;
+                this.x = Math.random() * canvas.width;
+            }
+            if (this.x < -30 || this.x > canvas.width + 30) {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + 10;
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.opacity;
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = this.color;
+
+            if (this.type === "star") {
+                // Draw soft glowy star circle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            } 
+            else if (this.type === "digital") {
+                // Cyber connected node particle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            } 
+            else if (this.type === "card") {
+                // Soft falling suits text
+                ctx.font = `${Math.floor(this.size * 5) + 10}px 'Segoe UI'`;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.fillText(this.suitSymbol, 0, 0);
+            } 
+            else if (this.type === "fire") {
+                // Flame embers rising
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+    }
+
+    function initParticles(cfg) {
+        particlesArray = [];
+        for (let i = 0; i < cfg.count; i++) {
+            particlesArray.push(new Particle(cfg.type, cfg.color, cfg.speed));
+        }
+    }
+
+    // Connect lines for "digital" cyberpunk theme
+    function connectParticles() {
+        if (activeTheme !== "cyber") return;
+        const maxDist = 120;
+        for (let a = 0; a < particlesArray.length; a++) {
+            for (let b = a + 1; b < particlesArray.length; b++) {
+                const dist = Math.hypot(particlesArray[a].x - particlesArray[b].x, particlesArray[a].y - particlesArray[b].y);
+                if (dist < maxDist) {
+                    ctx.save();
+                    ctx.strokeStyle = themes.cyber.particles.color;
+                    ctx.globalAlpha = (1 - dist / maxDist) * 0.15;
+                    ctx.lineWidth = 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                    ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+    }
+
+    // Draw cyber grid background
+    function drawCyberGrid() {
+        if (activeTheme !== "cyber") return;
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 240, 255, 0.03)";
+        ctx.lineWidth = 1;
+        const gridSize = 60;
+        
+        for (let x = 0; x < canvas.width; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        drawCyberGrid();
+
+        particlesArray.forEach(p => {
+            p.update();
+            p.draw();
+        });
+
+        connectParticles();
+        requestAnimationFrame(animate);
+    }
+
+    // Bootstrap default theme and particles
+    setTheme("gold");
+    animate();
+</script>
+</body>
+</html>

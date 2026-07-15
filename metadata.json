@@ -1,0 +1,8 @@
+{
+  "name": "CasinoForge Website",
+  "description": "Premium Discord Bot Website for CasinoForge",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
