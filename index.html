@@ -198,7 +198,7 @@
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+            to { opacity: 1. transform: translateY(0); }
         }
 
         /* Custom Action Buttons */
@@ -491,19 +491,20 @@
         .embed-buttons {
             display: flex;
             gap: 6px;
-            margin-top: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
         }
 
         .discord-btn {
             background: #4e5058;
-            color: #fff;
-            border: none;
+            color: #dbdee1;
             padding: 6px 12px;
             border-radius: 3px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
+            border: none;
         }
 
         .discord-btn:hover {
@@ -514,6 +515,36 @@
         .discord-btn.btn-green:hover { background: #1a6535; }
         .discord-btn.btn-red { background: #da373c; }
         .discord-btn.btn-red:hover { background: #a92b2f; }
+
+        /* Coinflip choice buttons */
+        .discord-btn.btn-blue { background: #5865f2; }
+        .discord-btn.btn-blue:hover { background: #4752c4; }
+
+        /* Bet amount selector */
+        .bet-selector {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .bet-amount-btn {
+            background: #4e5058;
+            color: #dbdee1;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .bet-amount-btn:hover {
+            background: rgba(88, 101, 242, 0.5);
+            color: #fff;
+            border-color: #5865f2;
+        }
 
         .typing-indicator {
             color: #949ba4;
@@ -674,7 +705,7 @@
 
             <div class="typing-indicator" id="typing-indicator">CasinoForge is typing...</div>
 
-            <!-- Simulator Chat Message Box -->
+            <!-- Simulator Chat Message Box (now appends messages like real Discord) -->
             <div id="sim-message-box">
                 <div class="discord-msg">
                     <div class="discord-avatar">🎰</div>
@@ -949,195 +980,518 @@
     // Live Bot Simulator Engine
     let userCredits = 15000;
     let blackjackState = null;
+    let pendingCommand = null; // Tracks what the user is in the middle of selecting
 
-    function runSimCommand(command) {
+    function appendDiscordMessage(html) {
         const msgBox = document.getElementById("sim-message-box");
+        msgBox.insertAdjacentHTML('beforeend', html);
+        // Auto-scroll to bottom
+        msgBox.scrollTop = msgBox.scrollHeight;
+    }
+
+    function showTyping(callback) {
         const typing = document.getElementById("typing-indicator");
-        
-        // Disable action buttons during interaction for smooth pacing
         typing.style.display = "block";
-        
         setTimeout(() => {
             typing.style.display = "none";
+            callback();
+        }, 600);
+    }
+
+    function runSimCommand(command) {
+        // If user clicks a command while in the middle of another game, cancel the pending state
+        pendingCommand = null;
+        blackjackState = null;
+
+        showTyping(() => {
             let responseHtml = "";
-            
+
             if (command === "daily") {
                 const prize = 2500;
                 userCredits += prize;
                 updateChipsDisplay();
                 responseHtml = createDiscordEmbed(
-                    "Daily Allowance Claimed", 
+                    "Daily Allowance Claimed",
                     `💰 You successfully claimed your daily allowance of **+${prize.toLocaleString()} Credits**!\n\nYour current account balance: **${userCredits.toLocaleString()} credits**`,
                     "btn-green"
                 );
-            } 
+                appendDiscordMessage(responseHtml);
+            }
             else if (command === "coinflip") {
-                const bet = 1000;
-                if (userCredits < bet) {
-                    responseHtml = createDiscordEmbed("Insufficient Balance", "❌ You do not have enough credits to place a **1,000 credit** coinflip bet. Claim your `/daily` first!");
-                } else {
-                    const win = Math.random() > 0.5;
-                    if (win) {
-                        userCredits += bet;
-                        responseHtml = createDiscordEmbed(
-                            "Coinflip Outcome: WIN! 🪙",
-                            `You bet **1,000 credits** on Heads and won!\n\n**Outcome:** Heads (Won +1,000)\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
-                            "btn-green"
-                        );
-                    } else {
-                        userCredits -= bet;
-                        responseHtml = createDiscordEmbed(
-                            "Coinflip Outcome: LOST... 🪙",
-                            `You bet **1,000 credits** on Heads and lost.\n\n**Outcome:** Tails (Lost -1,000)\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
-                            "btn-red"
-                        );
-                    }
-                    updateChipsDisplay();
-                }
-            } 
+                responseHtml = createDiscordEmbed(
+                    "Coinflip — Choose Your Side",
+                    `Select **Heads** or **Tails** and your bet amount below!\nYour balance: **${userCredits.toLocaleString()} credits**`,
+                    ""
+                );
+                responseHtml += createCoinflipChoiceButtons();
+                appendDiscordMessage(responseHtml);
+            }
             else if (command === "slots") {
-                const bet = 1500;
-                if (userCredits < bet) {
-                    responseHtml = createDiscordEmbed("Insufficient Balance", "❌ You do not have enough credits to spin the **1,500 credit** slots!");
-                } else {
-                    const slotSymbols = ["🍒", "🍋", "🍇", "💎", "👑"];
-                    const r1 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
-                    const r2 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
-                    const r3 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
-                    
-                    const isWin = (r1 === r2 && r2 === r3);
-                    const isPair = (r1 === r2 || r2 === r3 || r1 === r3) && !isWin;
-                    
-                    let payout = 0;
-                    let desc = `🎰 **[ ${r1} | ${r2} | ${r3} ]** 🎰\n\n`;
-                    
-                    if (isWin) {
-                        payout = bet * 5;
-                        userCredits += payout;
-                        desc += `🔥 **JACKPOT!** You matched three identical symbols!\n**Payout:** +${payout.toLocaleString()} Credits`;
-                    } else if (isPair) {
-                        payout = Math.floor(bet * 1.5);
-                        userCredits += payout - bet;
-                        desc += `✨ **Double Match!** You matched two symbols!\n**Payout:** +${payout.toLocaleString()} Credits`;
-                    } else {
-                        userCredits -= bet;
-                        desc += `❌ **No Match.** Better luck next time!\n**Lost:** -${bet.toLocaleString()} Credits`;
-                    }
-                    
-                    desc += `\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`;
-                    updateChipsDisplay();
-                    
+                if (userCredits < 100) {
                     responseHtml = createDiscordEmbed(
-                        "Forge Slots Machine",
-                        desc,
-                        isWin ? "btn-green" : (isPair ? "btn-green" : "btn-red")
+                        "Insufficient Balance",
+                        `❌ You only have **${userCredits.toLocaleString()} credits** — not enough to play! Claim your daily allowance with **/daily** or reset your balance.\n\n💡 You can reset your demo balance anytime by clicking the 💰 counter.`,
+                        "btn-red"
                     );
+                    appendDiscordMessage(responseHtml);
+                    return;
                 }
+                responseHtml = createDiscordEmbed(
+                    "Forge Slots Machine — Pick Your Bet",
+                    `Current balance: **${userCredits.toLocaleString()} credits**\n\nSelect a bet amount below to spin!`,
+                    ""
+                );
+                responseHtml += createSlotBetButtons();
+                appendDiscordMessage(responseHtml);
             }
             else if (command === "blackjack") {
-                const bet = 2000;
-                if (userCredits < bet) {
-                    responseHtml = createDiscordEmbed("Insufficient Balance", "❌ You do not have enough credits to play **2,000 credit** blackjack!");
-                } else {
-                    // Start game state
-                    const p1 = Math.floor(Math.random() * 10) + 2;
-                    const p2 = Math.floor(Math.random() * 10) + 2;
-                    const d1 = Math.floor(Math.random() * 10) + 2;
-                    
-                    blackjackState = {
-                        bet: bet,
-                        playerScore: p1 + p2,
-                        dealerScore: d1,
-                        active: true
-                    };
-                    
-                    responseHtml = renderBlackjackEmbed();
+                if (userCredits < 100) {
+                    responseHtml = createDiscordEmbed(
+                        "Insufficient Balance",
+                        `❌ You only have **${userCredits.toLocaleString()} credits** — not enough to play! Claim your daily allowance with **/daily** or reset your balance.\n\n💡 You can reset your demo balance anytime by clicking the 💰 counter.`,
+                        "btn-red"
+                    );
+                    appendDiscordMessage(responseHtml);
+                    return;
                 }
+                responseHtml = createDiscordEmbed(
+                    "Blackjack Table — Pick Your Bet",
+                    `Current balance: **${userCredits.toLocaleString()} credits**\n\nSelect a bet amount to deal the cards!`,
+                    ""
+                );
+                responseHtml += createBlackjackBetButtons();
+                appendDiscordMessage(responseHtml);
             }
-            
-            msgBox.innerHTML = responseHtml;
-        }, 600);
+        });
     }
 
-    function renderBlackjackEmbed() {
-        let desc = `🃏 **Blackjack Table** 🃏\n\n**Your Hand Value:** ${blackjackState.playerScore}\n**Dealer's Visible Card:** ${blackjackState.dealerScore}\n\nWhat is your play?`;
-        
+    // --- Coinflip Choice Selection ---
+    function createCoinflipChoiceButtons() {
+        return `
+            <div class="embed-buttons">
+                <button class="discord-btn btn-blue" onclick="selectCoinSide('heads')">Heads 🪙</button>
+                <button class="discord-btn btn-blue" onclick="selectCoinSide('tails')">Tails 🪙</button>
+            </div>
+        `;
+    }
+
+    function selectCoinSide(side) {
+        pendingCommand = { type: "coinflip", choice: side };
+
+        if (userCredits < 100) {
+            appendDiscordMessage(createDiscordEmbed(
+                "Insufficient Balance",
+                `❌ You only have **${userCredits.toLocaleString()} credits** — not enough to play!`,
+                "btn-red"
+            ));
+            return;
+        }
+
+        // Show bet selector
+        const responseHtml = createDiscordEmbed(
+            `Coinflip — Betting on ${side === 'heads' ? 'Heads' : 'Tails'}`,
+            `Choose your bet amount:\nYour balance: **${userCredits.toLocaleString()} credits**`,
+            ""
+        ) + createCoinflipBetButtons();
+
+        appendDiscordMessage(responseHtml);
+    }
+
+    function createCoinflipBetButtons() {
+        const bets = [500, 1000, 2500, 5000];
+        let btns = `<div class="bet-selector">`;
+        bets.forEach(bet => {
+            if (bet <= userCredits) {
+                btns += `<button class="bet-amount-btn" onclick="flipCoin(${bet})">${bet.toLocaleString()}</button>`;
+            }
+        });
+        btns += `<button class="bet-amount-btn" onclick="flipCoin(Math.floor(userCredits / 2))">50%</button>`;
+        btns += `<button class="bet-amount-btn" onclick="flipCoin(userCredits)">All In</button>`;
+        btns += `</div>`;
+        return btns;
+    }
+
+    function flipCoin(bet) {
+        const side = pendingCommand && pendingCommand.choice ? pendingCommand.choice : "heads";
+        pendingCommand = null;
+
+        if (bet > userCredits) bet = userCredits;
+
+        const win = Math.random() > 0.5;
+        const result = win ? (Math.random() > 0.5 ? "heads" : "tails") : (side === "heads" ? "tails" : "heads");
+        const won = result === side;
+
+        let desc = `🪙 **You bet ${bet.toLocaleString()} credits on ${side === 'heads' ? 'Heads' : 'Tails'}!**\n\n`;
+
+        if (won) {
+            userCredits += bet;
+            desc += `**Result:** ${result === 'heads' ? 'Heads' : 'Tails'} ✅\n**Payout:** +${bet.toLocaleString()} Credits`;
+            updateChipsDisplay();
+            appendDiscordMessage(createDiscordEmbed(
+                "Coinflip Outcome: WIN! 🪙",
+                desc + `\n\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                "btn-green"
+            ));
+        } else {
+            userCredits -= bet;
+            desc += `**Result:** ${result === 'heads' ? 'Heads' : 'Tails'} ❌\n**Lost:** -${bet.toLocaleString()} Credits`;
+            updateChipsDisplay();
+            appendDiscordMessage(createDiscordEmbed(
+                "Coinflip Outcome: LOST 🪙",
+                desc + `\n\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                "btn-red"
+            ));
+            checkBroke();
+        }
+    }
+
+    // --- Slots Bet Selection ---
+    function createSlotBetButtons() {
+        const bets = [500, 1000, 2000, 5000];
+        let btns = `<div class="bet-selector">`;
+        bets.forEach(bet => {
+            if (bet <= userCredits) {
+                btns += `<button class="bet-amount-btn" onclick="spinSlots(${bet})">${bet.toLocaleString()}</button>`;
+            }
+        });
+        btns += `<button class="bet-amount-btn" onclick="spinSlots(Math.floor(userCredits / 2))">50%</button>`;
+        btns += `<button class="bet-amount-btn" onclick="spinSlots(userCredits)">All In</button>`;
+        btns += `</div>`;
+        return btns;
+    }
+
+    function spinSlots(bet) {
+        if (bet > userCredits) bet = userCredits;
+        if (bet <= 0) {
+            appendDiscordMessage(createDiscordEmbed(
+                "Invalid Bet",
+                "❌ You cannot bet zero credits!",
+                "btn-red"
+            ));
+            return;
+        }
+
+        userCredits -= bet;
+
+        const slotSymbols = ["🍒", "🍋", "🍇", "💎", "👑", "7️⃣"];
+        const r1 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+        const r2 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+        const r3 = slotSymbols[Math.floor(Math.random() * slotSymbols.length)];
+
+        const isWin = (r1 === r2 && r2 === r3);
+        const isPair = (r1 === r2 || r2 === r3 || r1 === r3) && !isWin;
+
+        let desc = `🎰 **[ ${r1} | ${r2} | ${r3} ]** 🎰\nBet: **${bet.toLocaleString()} credits**\n\n`;
+
+        if (isWin) {
+            const payout = bet * 5;
+            userCredits += payout;
+            desc += `🔥 **JACKPOT!** Three matching symbols!\n**Payout:** +${payout.toLocaleString()} Credits (5x your bet)`;
+            updateChipsDisplay();
+            appendDiscordMessage(createDiscordEmbed(
+                "Forge Slots — JACKPOT!",
+                desc + `\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`,
+                "btn-green"
+            ));
+        } else if (isPair) {
+            const netGain = Math.floor(bet * 0.5);
+            userCredits += netGain;
+            desc += `✨ **Pair Match!** Two matching symbols!\n**Net Gain:** +${netGain.toLocaleString()} Credits (1.5x returned)`;
+            updateChipsDisplay();
+            appendDiscordMessage(createDiscordEmbed(
+                "Forge Slots — Pair Match!",
+                desc + `\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`,
+                "btn-green"
+            ));
+        } else {
+            desc += `❌ **No Match.** Better luck next time!\n**Lost:** -${bet.toLocaleString()} Credits`;
+            updateChipsDisplay();
+            appendDiscordMessage(createDiscordEmbed(
+                "Forge Slots — No Match",
+                desc + `\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`,
+                "btn-red"
+            ));
+            checkBroke();
+        }
+    }
+
+    // --- Blackjack Bet Selection ---
+    function createBlackjackBetButtons() {
+        const bets = [1000, 2000, 3000, 5000];
+        let btns = `<div class="bet-selector">`;
+        bets.forEach(bet => {
+            if (bet <= userCredits) {
+                btns += `<button class="bet-amount-btn" onclick="startBlackjack(${bet})">${bet.toLocaleString()}</button>`;
+            }
+        });
+        btns += `<button class="bet-amount-btn" onclick="startBlackjack(Math.floor(userCredits / 2))">50%</button>`;
+        btns += `<button class="bet-amount-btn" onclick="startBlackjack(userCredits)">All In</button>`;
+        btns += `</div>`;
+        return btns;
+    }
+
+    // Deck of cards for proper blackjack
+    const CARD_VALUES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]; // 2-9, J, Q, K, A
+    const CARD_NAMES  = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+    const SUITS       = ["♠", "♥", "♦", "♣"];
+    const RED_SUITS   = ["♥", "♦"];
+
+    function drawCard() {
+        const idx = Math.floor(Math.random() * CARD_VALUES.length);
+        const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+        const isRed = RED_SUITS.includes(suit);
+        return {
+            value: CARD_VALUES[idx],
+            name: CARD_NAMES[idx],
+            suit: suit,
+            display: `${CARD_NAMES[idx]}${suit}`,
+            isRed: isRed
+        };
+    }
+
+    function calculateHand(cards) {
+        let total = 0;
+        let aces = 0;
+        for (const card of cards) {
+            total += card.value;
+            if (card.value === 11) aces++;
+        }
+        // Ace bust protection: convert 11 -> 1
+        while (total > 21 && aces > 0) {
+            total -= 10;
+            aces--;
+        }
+        return total;
+    }
+
+    function cardsToDisplay(cards, hideLast = false) {
+        const visible = hideLast ? cards.slice(0, -1) : cards;
+        return visible.map(c => {
+            const color = c.isRed ? "#e74c3c" : "#dbdee1";
+            return `<span style="color:${color};font-weight:700">${c.display}</span>`;
+        }).join("  ");
+    }
+
+    function startBlackjack(bet) {
+        if (bet > userCredits) bet = userCredits;
+        if (bet <= 0) {
+            appendDiscordMessage(createDiscordEmbed(
+                "Invalid Bet",
+                "❌ You cannot bet zero credits!",
+                "btn-red"
+            ));
+            return;
+        }
+
+        userCredits -= bet;
+        updateChipsDisplay();
+
+        const playerCards = [drawCard(), drawCard()];
+        const dealerCards = [drawCard(), drawCard()];
+
+        const playerTotal = calculateHand(playerCards);
+        const dealerVisible = cardsToDisplay(dealerCards, true);
+        const dealerHiddenTotal = dealerCards[0].value; // Only first card visible
+
+        blackjackState = {
+            bet: bet,
+            playerCards: playerCards,
+            dealerCards: dealerCards,
+            playerTotal: playerTotal,
+            dealerTotal: calculateHand(dealerCards),
+            dealerHiddenTotal: dealerHiddenTotal,
+            active: true
+        };
+
+        // Check for player blackjack
+        if (playerTotal === 21) {
+            // Check if dealer also has blackjack
+            if (blackjackState.dealerTotal === 21) {
+                endBlackjack("push");
+                return;
+            }
+            endBlackjack("blackjack");
+            return;
+        }
+
+        let desc = `🃏 **Blackjack Table** 🃏\nBet: **${bet.toLocaleString()} credits**\n\n`;
+        desc += `**Your Hand:** ${cardsToDisplay(playerCards)}\n`;
+        desc += `**Your Total:** ${playerTotal}\n\n`;
+        desc += `**Dealer's Hand:** ${dealerVisible} **?**\n`;
+        desc += `**Dealer Showing:** ${dealerHiddenTotal}\n\n`;
+        desc += `What is your play?`;
+
         let buttons = `
             <div class="embed-buttons">
                 <button class="discord-btn btn-green" onclick="playBlackjackAction('hit')">Hit</button>
                 <button class="discord-btn" onclick="playBlackjackAction('stand')">Stand</button>
             </div>
         `;
-        
-        return createDiscordEmbed("Active Blackjack Game", desc, "", buttons);
+
+        appendDiscordMessage(createDiscordEmbed("Blackjack — Deal!", desc, "", buttons));
     }
 
     function playBlackjackAction(action) {
         if (!blackjackState || !blackjackState.active) return;
-        
-        const msgBox = document.getElementById("sim-message-box");
-        const typing = document.getElementById("typing-indicator");
-        
-        typing.style.display = "block";
-        
-        setTimeout(() => {
-            typing.style.display = "none";
-            
+
+        showTyping(() => {
             if (action === "hit") {
-                const card = Math.floor(Math.random() * 10) + 2;
-                blackjackState.playerScore += card;
-                
-                if (blackjackState.playerScore > 21) {
-                    // Busted
-                    userCredits -= blackjackState.bet;
-                    updateChipsDisplay();
+                const card = drawCard();
+                blackjackState.playerCards.push(card);
+                blackjackState.playerTotal = calculateHand(blackjackState.playerCards);
+
+                if (blackjackState.playerTotal > 21) {
                     blackjackState.active = false;
-                    msgBox.innerHTML = createDiscordEmbed(
-                        "Blackjack: BUST! ❌",
-                        `💥 You drew a **${card}** and busted with **${blackjackState.playerScore}** score!\n\n**Lost:** -${blackjackState.bet.toLocaleString()} Credits\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`
-                    );
-                } else {
-                    msgBox.innerHTML = renderBlackjackEmbed();
+                    endBlackjack("bust");
+                    return;
                 }
+
+                if (blackjackState.playerTotal === 21) {
+                    playBlackjackAction("stand");
+                    return;
+                }
+
+                // Show updated hand
+                let desc = `🃏 **Blackjack Table** 🃏\nBet: **${blackjackState.bet.toLocaleString()} credits**\n\n`;
+                desc += `**Your Hand:** ${cardsToDisplay(blackjackState.playerCards)}\n`;
+                desc += `**Your Total:** ${blackjackState.playerTotal}\n\n`;
+                desc += `**Dealer's Hand:** ${cardsToDisplay(blackjackState.dealerCards, true)} **?**\n`;
+                desc += `**Dealer Showing:** ${blackjackState.dealerHiddenTotal}\n\n`;
+                desc += `Drew a **${card.display}** — Hit again or Stand?`;
+
+                let buttons = `
+                    <div class="embed-buttons">
+                        <button class="discord-btn btn-green" onclick="playBlackjackAction('hit')">Hit</button>
+                        <button class="discord-btn" onclick="playBlackjackAction('stand')">Stand</button>
+                    </div>
+                `;
+
+                appendDiscordMessage(createDiscordEmbed("Blackjack — Hit!", desc, "", buttons));
             } else if (action === "stand") {
                 blackjackState.active = false;
-                // Dealer plays
-                while (blackjackState.dealerScore < 17) {
-                    blackjackState.dealerScore += Math.floor(Math.random() * 10) + 2;
-                }
-                
-                let result = "";
-                let colorClass = "";
-                
-                if (blackjackState.dealerScore > 21) {
-                    userCredits += blackjackState.bet;
-                    result = `🎉 **Dealer Busted!** Dealer score is **${blackjackState.dealerScore}**. You win!\n\n**Won:** +${blackjackState.bet.toLocaleString()} Credits`;
-                    colorClass = "btn-green";
-                } else if (blackjackState.playerScore > blackjackState.dealerScore) {
-                    userCredits += blackjackState.bet;
-                    result = `🎉 **You Win!** Your score: **${blackjackState.playerScore}** vs Dealer score: **${blackjackState.dealerScore}**.\n\n**Won:** +${blackjackState.bet.toLocaleString()} Credits`;
-                    colorClass = "btn-green";
-                } else if (blackjackState.playerScore < blackjackState.dealerScore) {
-                    userCredits -= blackjackState.bet;
-                    result = `❌ **Dealer Wins.** Your score: **${blackjackState.playerScore}** vs Dealer score: **${blackjackState.dealerScore}**.\n\n**Lost:** -${blackjackState.bet.toLocaleString()} Credits`;
-                    colorClass = "btn-red";
-                } else {
-                    result = `👔 **Push.** Standard tie. Your score: **${blackjackState.playerScore}** vs Dealer score: **${blackjackState.dealerScore}**.\n\nNo credits lost.`;
-                }
-                
-                updateChipsDisplay();
-                msgBox.innerHTML = createDiscordEmbed(
-                    "Blackjack Result",
-                    `${result}\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`,
-                    colorClass
-                );
+                resolveBlackjack();
             }
-        }, 500);
+        });
+    }
+
+    function resolveBlackjack() {
+        // Dealer draws until 17+
+        while (blackjackState.dealerTotal < 17) {
+            const card = drawCard();
+            blackjackState.dealerCards.push(card);
+            blackjackState.dealerTotal = calculateHand(blackjackState.dealerCards);
+        }
+
+        if (blackjackState.dealerTotal > 21) {
+            endBlackjack("dealerBust");
+        } else if (blackjackState.playerTotal > blackjackState.dealerTotal) {
+            endBlackjack("win");
+        } else if (blackjackState.playerTotal < blackjackState.dealerTotal) {
+            endBlackjack("lose");
+        } else {
+            endBlackjack("push");
+        }
+    }
+
+    function endBlackjack(result) {
+        blackjackState.active = false;
+        const bet = blackjackState.bet;
+        let desc = "";
+        let statusClass = "";
+
+        if (result === "blackjack") {
+            // Blackjack pays 3:2
+            const payout = Math.floor(bet * 2.5);
+            userCredits += payout;
+            desc = `🎉 **BLACKJACK!** You got 21!\n\n`;
+            desc += `**Your Hand:** ${cardsToDisplay(blackjackState.playerCards)} (${blackjackState.playerTotal})\n`;
+            desc += `**Dealer's Hand:** ${cardsToDisplay(blackjackState.dealerCards, true)} (**?**)\n\n`;
+            desc += `**Payout (3:2):** +${payout.toLocaleString()} Credits`;
+            statusClass = "btn-green";
+        } else if (result === "push") {
+            userCredits += bet; // Refund
+            desc = `👔 **Push!** It's a tie.\n\n`;
+            desc += `**Your Hand:** ${cardsToDisplay(blackjackState.playerCards)} (${blackjackState.playerTotal})\n`;
+            desc += `**Dealer's Hand:** ${cardsToDisplay(blackjackState.dealerCards)} (${blackjackState.dealerTotal})\n\n`;
+            desc += `Your bet of **${bet.toLocaleString()}** credits has been refunded.`;
+            statusClass = "";
+        } else if (result === "bust") {
+            desc = `💥 **BUST!** You went over 21!\n\n`;
+            desc += `**Your Hand:** ${cardsToDisplay(blackjackState.playerCards)} (${blackjackState.playerTotal})\n`;
+            desc += `**Dealer's Hand:** ${cardsToDisplay(blackjackState.dealerCards, true)} (**?**)\n\n`;
+            desc += `**Lost:** -${bet.toLocaleString()} Credits`;
+            statusClass = "btn-red";
+        } else if (result === "dealerBust") {
+            userCredits += bet * 2;
+            desc = `🎉 **Dealer Busted!** They went over 21!\n\n`;
+            desc += `**Your Hand:** ${cardsToDisplay(blackjackState.playerCards)} (${blackjackState.playerTotal})\n`;
+            desc += `**Dealer's Hand:** ${cardsToDisplay(blackjackState.dealerCards)} (${blackjackState.dealerTotal})\n\n`;
+            desc += `**Won:** +${bet.toLocaleString()} Credits`;
+            statusClass = "btn-green";
+        } else if (result === "win") {
+            userCredits += bet * 2;
+            desc = `🎉 **You Win!**\n\n`;
+            desc += `**Your Hand:** ${cardsToDisplay(blackjackState.playerCards)} (${blackjackState.playerTotal})\n`;
+            desc += `**Dealer's Hand:** ${cardsToDisplay(blackjackState.dealerCards)} (${blackjackState.dealerTotal})\n\n`;
+            desc += `**Won:** +${bet.toLocaleString()} Credits`;
+            statusClass = "btn-green";
+        } else if (result === "lose") {
+            desc = `❌ **Dealer Wins.**\n\n`;
+            desc += `**Your Hand:** ${cardsToDisplay(blackjackState.playerCards)} (${blackjackState.playerTotal})\n`;
+            desc += `**Dealer's Hand:** ${cardsToDisplay(blackjackState.dealerCards)} (${blackjackState.dealerTotal})\n\n`;
+            desc += `**Lost:** -${bet.toLocaleString()} Credits`;
+            statusClass = "btn-red";
+        }
+
+        updateChipsDisplay();
+        appendDiscordMessage(createDiscordEmbed(
+            "Blackjack Result",
+            desc + `\n\n💰 **Current Balance:** ${userCredits.toLocaleString()} credits`,
+            statusClass
+        ));
+
+        if (result === "bust" || result === "lose") {
+            checkBroke();
+        }
+    }
+
+    function checkBroke() {
+        if (userCredits <= 0) {
+            setTimeout(() => {
+                appendDiscordMessage(createDiscordEmbed(
+                    "You're Broke! 💀",
+                    `❌ You've run out of credits! Don't worry — click the **💰 counter** at the top to reset your balance to **15,000** and keep playing!\n\nOr claim **/daily** for a free allowance.`,
+                    "btn-red"
+                ));
+            }, 800);
+        }
     }
 
     function updateChipsDisplay() {
         document.getElementById("chips-amount").textContent = userCredits.toLocaleString();
     }
+
+    // Click on chip counter to reset balance (when broke or just for fun)
+    document.addEventListener("DOMContentLoaded", () => {
+        const chipEl = document.getElementById("chips-amount").parentElement;
+        if (chipEl) {
+            chipEl.style.cursor = "pointer";
+            chipEl.title = "Click to reset balance to 15,000";
+            chipEl.addEventListener("click", () => {
+                userCredits = 15000;
+                blackjackState = null;
+                pendingCommand = null;
+                updateChipsDisplay();
+                // Clear message box and show welcome message
+                document.getElementById("sim-message-box").innerHTML = "";
+                appendDiscordMessage(createDiscordEmbed(
+                    "Balance Reset!",
+                    `💰 Your demo balance has been reset to **15,000 credits**.\n\nReady to play again!`,
+                    "btn-green"
+                ));
+            });
+        }
+    });
 
     function createDiscordEmbed(title, description, statusClass = "", buttonsHtml = "") {
         let borderStyle = "";
