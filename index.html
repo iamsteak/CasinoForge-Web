@@ -704,6 +704,7 @@
                 <button class="command-badge" onclick="runSimCommand('beg')">/beg</button>
                 <button class="command-badge" onclick="runSimCommand('work')">/work</button>
                 <button class="command-badge" onclick="runSimCommand('crime')">/crime</button>
+                <button class="command-badge" onclick="runSimCommand('dev-gift')">/dev-gift</button>
             </div>
 
             <div class="typing-indicator" id="typing-indicator">CasinoForge is typing...</div>
@@ -1170,7 +1171,48 @@
                 updateChipsDisplay();
                 appendDiscordMessage(responseHtml);
             }
+            else if (command === "dev-gift") {
+                // Simulate the /dev-gift command: DM embed with claim button
+                const amounts = [5000, 10000, 15000, 25000, 50000];
+                const amount = amounts[Math.floor(Math.random() * amounts.length)];
+                userCredits += amount;
+                
+                responseHtml = `
+                    <div class="discord-msg">
+                        <div class="discord-avatar">📩</div>
+                        <div class="discord-content">
+                            <div class="discord-author">CasinoForge <span class="bot-tag">Bot</span></div>
+                            <div class="discord-embed" style="border-left-color: #248046;">
+                                <div class="embed-title">🎁 Dev Gift Received!</div>
+                                <div class="embed-desc">A developer has gifted you **${amount.toLocaleString()} Coins**!</div>
+                                <div class="embed-footer" style="margin-top: 8px; font-size: 11px; color: #949ba4;">Gifted by: iamsteak (iamsteak)</div>
+                                <div class="embed-buttons">
+                                    <button class="discord-btn btn-green" onclick="claimDevGift(this, ${amount})">Claim Now</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                appendDiscordMessage(responseHtml);
+                updateChipsDisplay();
+            }
         });
+    }
+
+    // --- Dev Gift Claim Handler ---
+    function claimDevGift(button, amount) {
+        // Disable the button so it can't be claimed again
+        button.disabled = true;
+        button.textContent = "✅ Claimed";
+        button.style.opacity = "0.6";
+        
+        // Show the claimed confirmation in a new message
+        const claimedHtml = createDiscordEmbed(
+            "✅ Gift Claimed!",
+            `You have successfully claimed **${amount.toLocaleString()} Coins** from **iamsteak**!\n\nYour new balance: **${userCredits.toLocaleString()} credits**`,
+            "btn-green"
+        );
+        appendDiscordMessage(claimedHtml);
     }
 
     // --- Coinflip Choice Selection ---
