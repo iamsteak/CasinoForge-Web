@@ -705,6 +705,9 @@
                 <button class="command-badge" onclick="runSimCommand('work')">/work</button>
                 <button class="command-badge" onclick="runSimCommand('crime')">/crime</button>
                 <button class="command-badge" onclick="runSimCommand('dev-gift')">/dev-gift</button>
+                <button class="command-badge" onclick="runSimCommand('rob')">/rob</button>
+                <button class="command-badge" onclick="runSimCommand('steal')">/steal</button>
+                <button class="command-badge" onclick="runSimCommand('lucky-wheel')">/lucky-wheel</button>
             </div>
 
             <div class="typing-indicator" id="typing-indicator">CasinoForge is typing...</div>
@@ -1195,6 +1198,108 @@
                 `;
                 appendDiscordMessage(responseHtml);
                 updateChipsDisplay();
+            }
+            else if (command === "rob") {
+                // 35% success, steal 10-40% of "target" wallet
+                const success = Math.random() < 0.35;
+                const targetBalance = 5000 + Math.floor(Math.random() * 15000);
+                if (success) {
+                    const amount = Math.floor(targetBalance * (Math.random() * 0.3 + 0.1));
+                    userCredits += amount;
+                    responseHtml = createDiscordEmbed(
+                        "/rob — SUCCESS!",
+                        `🥷 You successfully robbed a casino tourist and stole **${amount.toLocaleString()}** coins!\n\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                        "btn-green"
+                    );
+                } else {
+                    const fine = Math.floor(Math.random() * 301) + 200;
+                    userCredits -= fine;
+                    responseHtml = createDiscordEmbed(
+                        "/rob — CAUGHT!",
+                        `👮 You were caught trying to rob someone and fined **${fine.toLocaleString()}** coins!\n\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                        "btn-red"
+                    );
+                    checkBroke();
+                }
+                updateChipsDisplay();
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "steal") {
+                // 30% success, sneakier but riskier
+                const success = Math.random() < 0.30;
+                const targetBalance = 8000 + Math.floor(Math.random() * 20000);
+                if (success) {
+                    const amount = Math.floor(targetBalance * (Math.random() * 0.2 + 0.15));
+                    userCredits += amount;
+                    const notified = Math.random() < 0.1;
+                    responseHtml = createDiscordEmbed(
+                        "/steal — SUCCESS!",
+                        `🕵️ You sneakily stole **${amount.toLocaleString()}** coins from a high-roller's wallet!\n${notified ? '\n⚠️ **They were notified!** They know someone tried to steal from them.\n' : ''}\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                        "btn-green"
+                    );
+                } else {
+                    const fine = Math.floor(Math.random() * 301) + 300;
+                    userCredits -= fine;
+                    const notified = Math.random() < 0.1;
+                    responseHtml = createDiscordEmbed(
+                        "/steal — BUSTED!",
+                        `👮 Busted! Security caught you trying to steal and fined you **${fine.toLocaleString()}** coins.${notified ? '\n\n🚨 The target was also alerted!' : ''}\n\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                        "btn-red"
+                    );
+                    checkBroke();
+                }
+                updateChipsDisplay();
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "lucky-wheel") {
+                // Weighted wheel segments
+                const segments = [
+                    { label: "JACKPOT", mult: 10, weight: 3 },
+                    { label: "MEGA WIN", mult: 5, weight: 8 },
+                    { label: "BIG WIN", mult: 3, weight: 15 },
+                    { label: "NICE!", mult: 2, weight: 20 },
+                    { label: "SMALL WIN", mult: 1.5, weight: 25 },
+                    { label: "BANKRUPT", mult: 0, weight: 19 },
+                    { label: "HALF BACK", mult: 0.5, weight: 10 }
+                ];
+                const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
+                const roll = Math.random() * totalWeight;
+                let cumulative = 0;
+                let selected = segments[0];
+                for (const seg of segments) {
+                    cumulative += seg.weight;
+                    if (roll <= cumulative) { selected = seg; break; }
+                }
+                
+                const wheelDisplay = segments.map(s =>
+                    (s === selected ? "➤ " : "  ") + `${s.label} (${s.mult}x)`
+                ).join("\n");
+                
+                if (selected.mult === 0) {
+                    responseHtml = createDiscordEmbed(
+                        "/lucky-wheel — BANKRUPT!",
+                        `🎡 **Lucky Wheel Result:**\n\`\`\`\n${wheelDisplay}\n\`\`\`\n💀 **BANKRUPT!** You landed on bankruptcy. Better luck next spin!`,
+                        "btn-red"
+                    );
+                } else {
+                    const bet = 1000;
+                    const winnings = Math.floor(bet * selected.mult);
+                    const netGain = winnings - bet;
+                    if (selected.mult < 1) {
+                        responseHtml = createDiscordEmbed(
+                            "/lucky-wheel — Result",
+                            `🎡 **Lucky Wheel Result:**\n\`\`\`\n${wheelDisplay}\n\`\`\`\n📉 Landed on **${selected.label}** (${selected.mult}x). You got back **${winnings.toLocaleString()}** coins (net loss: **${Math.abs(netGain).toLocaleString()}**).`,
+                            "btn-red"
+                        );
+                    } else {
+                        responseHtml = createDiscordEmbed(
+                            "/lucky-wheel — Result",
+                            `🎡 **Lucky Wheel Result:**\n\`\`\`\n${wheelDisplay}\n\`\`\`\n🎉 Landed on **${selected.label}** (${selected.mult}x)! You won **${winnings.toLocaleString()}** coins! (net gain: **+${netGain.toLocaleString()}**).`,
+                            "btn-green"
+                        );
+                    }
+                }
+                appendDiscordMessage(responseHtml);
             }
         });
     }
