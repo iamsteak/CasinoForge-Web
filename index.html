@@ -701,6 +701,9 @@
                 <button class="command-badge" onclick="runSimCommand('blackjack')">/blackjack</button>
                 <button class="command-badge" onclick="runSimCommand('coinflip')">/coinflip</button>
                 <button class="command-badge" onclick="runSimCommand('daily')">/daily</button>
+                <button class="command-badge" onclick="runSimCommand('beg')">/beg</button>
+                <button class="command-badge" onclick="runSimCommand('work')">/work</button>
+                <button class="command-badge" onclick="runSimCommand('crime')">/crime</button>
             </div>
 
             <div class="typing-indicator" id="typing-indicator">CasinoForge is typing...</div>
@@ -1030,7 +1033,9 @@
                 if (userCredits < 100) {
                     responseHtml = createDiscordEmbed(
                         "Insufficient Balance",
-                        `❌ You only have **${userCredits.toLocaleString()} credits** — not enough to play! Claim your daily allowance with **/daily** or reset your balance.\n\n💡 You can reset your demo balance anytime by clicking the 💰 counter.`,
+                        `❌ You only have **${userCredits.toLocaleString()} credits** — not enough to play! Claim your daily allowance with **/daily**, try **/beg**, or take a risk with **/crime**.
+
+💡 Earn credits using economy commands like **/beg**, **/work**, and **/crime** to keep playing!`,
                         "btn-red"
                     );
                     appendDiscordMessage(responseHtml);
@@ -1048,7 +1053,9 @@
                 if (userCredits < 100) {
                     responseHtml = createDiscordEmbed(
                         "Insufficient Balance",
-                        `❌ You only have **${userCredits.toLocaleString()} credits** — not enough to play! Claim your daily allowance with **/daily** or reset your balance.\n\n💡 You can reset your demo balance anytime by clicking the 💰 counter.`,
+                        `❌ You only have **${userCredits.toLocaleString()} credits** — not enough to play! Claim your daily allowance with **/daily**, try **/beg**, or take a risk with **/crime**.
+
+💡 Earn credits using economy commands like **/beg**, **/work**, and **/crime** to keep playing!`,
                         "btn-red"
                     );
                     appendDiscordMessage(responseHtml);
@@ -1060,6 +1067,107 @@
                     ""
                 );
                 responseHtml += createBlackjackBetButtons();
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "beg") {
+                // Random amount between 50 and 500, ~75% chance of success
+                const success = Math.random() > 0.25;
+                if (success) {
+                    const amount = Math.floor(Math.random() * 451) + 50; // 50-500
+                    userCredits += amount;
+                    const begMessages = [
+                        `"Please, I need some credits for the casino!"`,
+                        `"Anyone got some spare credits? I'm trying to build my bankroll!"`,
+                        `"Hey! Can someone spare a few credits? I promise I'll win big!"`,
+                        `"*kneels dramatically* Please, kind stranger!"`,
+                        `"Just a few credits will do! I've got a good feeling about today!"`
+                    ];
+                    const msg = begMessages[Math.floor(Math.random() * begMessages.length)];
+                    responseHtml = createDiscordEmbed(
+                        "/beg — Credits Received!",
+                        `Someone felt generous! 💰\n\n${msg}\n\n**Received:** +${amount.toLocaleString()} Credits\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                        "btn-green"
+                    );
+                } else {
+                    const failMessages = [
+                        `"Please, I need some credits!"\n\nNo one wanted to help. 💀`,
+                        `"Anyone got some spare credits?"\n\nEveryone ignored you. 💀`,
+                        `"*kneels dramatically*"\n\nSomeone threw a penny at you. Pathetic. 💀`,
+                        `"Just a few credits will do!"\n\nPeople walked past you in disgust. 💀`
+                    ];
+                    responseHtml = createDiscordEmbed(
+                        "/beg — No Luck",
+                        failMessages[Math.floor(Math.random() * failMessages.length)],
+                        "btn-red"
+                    );
+                }
+                updateChipsDisplay();
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "work") {
+                // Random amount between 200 and 1500
+                const amount = Math.floor(Math.random() * 1301) + 200; // 200-1500
+                const jobs = [
+                    { desc: "You worked a shift at the local casino as a dealer.", emoji: "🃏" },
+                    { desc: "You helped a tourist navigate the casino floor.", emoji: "🗺️" },
+                    { desc: "You bartended at the high-roller lounge for a few hours.", emoji: "🍸" },
+                    { desc: "You cleaned up the VIP tables after a big tournament.", emoji: "🧹" },
+                    { desc: "You ran the security booth for the night shift.", emoji: "🔦" },
+                    { desc: "You counted chips in the back room for the manager.", emoji: "🔢" },
+                    { desc: "You delivered drinks to the roulette table players.", emoji: "🥂" },
+                    { desc: "You fixed the slot machines in the arcade wing.", emoji: "🔧" },
+                    { desc: "You handed out flyers for a poker tournament.", emoji: "📢" },
+                    { desc: "You worked the door as a bouncer for an underground poker game.", emoji: "🚪" }
+                ];
+                const job = jobs[Math.floor(Math.random() * jobs.length)];
+                userCredits += amount;
+                responseHtml = createDiscordEmbed(
+                    "/work — Shift Complete!",
+                    `${job.emoji} ${job.desc}\n\n**Earned:** +${amount.toLocaleString()} Credits\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                    "btn-green"
+                );
+                updateChipsDisplay();
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "crime") {
+                // ~45% chance of success
+                const success = Math.random() > 0.55;
+                if (success) {
+                    const amount = Math.floor(Math.random() * 4001) + 500; // 500-4500
+                    const crimes = [
+                        { desc: "You robbed the casino's cash register!", emoji: "💰" },
+                        { desc: "You pulled off a chip heist at the tables!", emoji: "🎰" },
+                        { desc: "You hacked the casino's vault system!", emoji: "💻" },
+                        { desc: "You ran a three-card monte scam on the tourists!", emoji: "🃏" },
+                        { desc: "You blackmailed the casino owner for a cut!", emoji: "📁" },
+                        { desc: "You picked a high-roller's pocket at the blackjack table!", emoji: "👖" }
+                    ];
+                    const crime = crimes[Math.floor(Math.random() * crimes.length)];
+                    userCredits += amount;
+                    responseHtml = createDiscordEmbed(
+                        "/crime — You Got Away!",
+                        `${crime.emoji} ${crime.desc}\n\n**Loot:** +${amount.toLocaleString()} Credits\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                        "btn-green"
+                    );
+                } else {
+                    const fails = [
+                        { desc: "You tried to rob the casino but the guards caught you!", penalty: "200" },
+                        { desc: "You attempted to scam a player but got reported!", penalty: "300" },
+                        { desc: "You tried to hack the slots but triggered an alarm!", penalty: "500" },
+                        { desc: "You tried to steal chips but the pit boss caught you!", penalty: "400" },
+                        { desc: "You ran a hustle on a table but the dealer saw right through it!", penalty: "250" }
+                    ];
+                    const fail = fails[Math.floor(Math.random() * fails.length)];
+                    const penalty = parseInt(fail.penalty);
+                    userCredits -= penalty;
+                    responseHtml = createDiscordEmbed(
+                        "/crime — Busted!",
+                        `🚨 ${fail.desc}\n\n**Fined:** -${fail.penalty} Credits\n💰 **New balance:** ${userCredits.toLocaleString()} credits`,
+                        "btn-red"
+                    );
+                    checkBroke();
+                }
+                updateChipsDisplay();
                 appendDiscordMessage(responseHtml);
             }
         });
@@ -1460,7 +1568,7 @@
             setTimeout(() => {
                 appendDiscordMessage(createDiscordEmbed(
                     "You're Broke! 💀",
-                    `❌ You've run out of credits! Don't worry — click the **💰 counter** at the top to reset your balance to **15,000** and keep playing!\n\nOr claim **/daily** for a free allowance.`,
+                    `❌ You've run out of credits! Don't worry — use these commands to earn more:\n\n• **/daily** — Claim your daily allowance (+2,500)\n• **/beg** — Ask strangers for credits\n• **/work** — Work a shift at the casino\n• **/crime** — Risk it all for a big payout`,
                     "btn-red"
                 ));
             }, 800);
@@ -1471,27 +1579,7 @@
         document.getElementById("chips-amount").textContent = userCredits.toLocaleString();
     }
 
-    // Click on chip counter to reset balance (when broke or just for fun)
-    document.addEventListener("DOMContentLoaded", () => {
-        const chipEl = document.getElementById("chips-amount").parentElement;
-        if (chipEl) {
-            chipEl.style.cursor = "pointer";
-            chipEl.title = "Click to reset balance to 15,000";
-            chipEl.addEventListener("click", () => {
-                userCredits = 15000;
-                blackjackState = null;
-                pendingCommand = null;
-                updateChipsDisplay();
-                // Clear message box and show welcome message
-                document.getElementById("sim-message-box").innerHTML = "";
-                appendDiscordMessage(createDiscordEmbed(
-                    "Balance Reset!",
-                    `💰 Your demo balance has been reset to **15,000 credits**.\n\nReady to play again!`,
-                    "btn-green"
-                ));
-            });
-        }
-    });
+    // Chip counter displays current balance (read-only, no reset to prevent abuse)
 
     function createDiscordEmbed(title, description, statusClass = "", buttonsHtml = "") {
         let borderStyle = "";
