@@ -708,6 +708,10 @@
                 <button class="command-badge" onclick="runSimCommand('rob')">/rob</button>
                 <button class="command-badge" onclick="runSimCommand('steal')">/steal</button>
                 <button class="command-badge" onclick="runSimCommand('lucky-wheel')">/lucky-wheel</button>
+                <button class="command-badge" onclick="runSimCommand('invite')">/invite</button>
+                <button class="command-badge" onclick="runSimCommand('tos')">/tos</button>
+                <button class="command-badge" onclick="runSimCommand('privacy')">/privacy</button>
+                <button class="command-badge" onclick="runSimCommand('support')">/support</button>
             </div>
 
             <div class="typing-indicator" id="typing-indicator">CasinoForge is typing...</div>
@@ -1299,6 +1303,79 @@
                         );
                     }
                 }
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "invite") {
+                responseHtml = `
+                    <div class="discord-msg">
+                        <div class="discord-avatar">🎰</div>
+                        <div class="discord-content">
+                            <div class="discord-author">CasinoForge <span class="bot-tag">Bot</span></div>
+                            <div class="discord-embed" style="border-left-color: #5865f2;">
+                                <div class="embed-title">🎰 Invite CasinoForge</div>
+                                <div class="embed-desc">Click the buttons below to invite CasinoForge to your server or join our official community!</div>
+                                <div class="embed-buttons">
+                                    <a href="https://discord.com/oauth2/authorize?client_id=1524862325927182536&permissions=543231040&scope=bot+applications.commands" target="_blank" class="discord-btn btn-blue">➕ Invite CasinoForge</a>
+                                    <a href="https://discord.gg/mQjctHh2Fd" target="_blank" class="discord-btn btn-green">💬 Official Server</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "tos") {
+                responseHtml = `
+                    <div class="discord-msg">
+                        <div class="discord-avatar">🎰</div>
+                        <div class="discord-content">
+                            <div class="discord-author">CasinoForge <span class="bot-tag">Bot</span></div>
+                            <div class="discord-embed" style="border-left-color: #5865f2;">
+                                <div class="embed-title">📜 Terms of Service</div>
+                                <div class="embed-desc">By using CasinoForge, you agree to our <a href="https://bryce.is-a.dev/casinoforge/tos" target="_blank">Terms of Service</a>.<br><br>Please read them carefully before using the bot.</div>
+                                <div class="embed-buttons">
+                                    <a href="https://bryce.is-a.dev/casinoforge/tos" target="_blank" class="discord-btn btn-blue">📜 Read ToS</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "privacy") {
+                responseHtml = `
+                    <div class="discord-msg">
+                        <div class="discord-avatar">🎰</div>
+                        <div class="discord-content">
+                            <div class="discord-author">CasinoForge <span class="bot-tag">Bot</span></div>
+                            <div class="discord-embed" style="border-left-color: #5865f2;">
+                                <div class="embed-title">🔒 Privacy Policy</div>
+                                <div class="embed-desc">CasinoForge collects minimal data. Read our full <a href="https://bryce.is-a.dev/casinoforge/privacy" target="_blank">Privacy Policy</a> to learn more about how we handle your information.</div>
+                                <div class="embed-buttons">
+                                    <a href="https://bryce.is-a.dev/casinoforge/privacy" target="_blank" class="discord-btn btn-blue">🔒 Read Policy</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                appendDiscordMessage(responseHtml);
+            }
+            else if (command === "support") {
+                responseHtml = `
+                    <div class="discord-msg">
+                        <div class="discord-avatar">🎰</div>
+                        <div class="discord-content">
+                            <div class="discord-author">CasinoForge <span class="bot-tag">Bot</span></div>
+                            <div class="discord-embed" style="border-left-color: #2ecc71;">
+                                <div class="embed-title">💬 Support Server</div>
+                                <div class="embed-desc">Need help? Join the <strong>CasinoForge Official Server</strong> for support, updates, and community!</div>
+                                <div class="embed-buttons">
+                                    <a href="https://discord.gg/mQjctHh2Fd" target="_blank" class="discord-btn btn-green">💬 Join Server</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 appendDiscordMessage(responseHtml);
             }
         });
