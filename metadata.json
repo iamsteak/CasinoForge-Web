@@ -1,8 +1,7 @@
 {
-  "name": "CasinoForge Website",
-  "description": "Premium Discord Bot Website for CasinoForge",
+  "name": "CasinoForge",
+  "description": "CasinoForge - A High-Stakes Discord Gambling Economy Bot",
+  "version": "2.0.0",
   "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "majorCapabilities": []
 }
