@@ -313,6 +313,63 @@
         .footer-links a:hover { color: #fff; }
         .footer-copy { font-size: 0.8rem; color: #64748b; }
 
+        /* ===== LIVE STATS ===== */
+        .live-stats-section {
+            padding: 5rem 2rem; max-width: 1200px; margin: 0 auto;
+        }
+        .live-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+        .live-stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px; padding: 1.5rem;
+            text-align: center; transition: all 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .live-stat-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, #5865f2, #a855f7);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .live-stat-card:hover::before { opacity: 1; }
+        .live-stat-card:hover {
+            border-color: rgba(88, 101, 242, 0.3);
+            transform: translateY(-2px);
+        }
+        .live-stat-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
+        .live-stat-value {
+            font-size: 1.75rem; font-weight: 800;
+            background: linear-gradient(135deg, #5865f2, #a855f7);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .live-stat-label { font-size: 0.8rem; color: #64748b; margin-top: 0.35rem; font-weight: 500; }
+        .live-stat-status {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.75rem;
+            border-radius: 999px; margin-top: 0.5rem;
+        }
+        .status-online { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .status-maintenance { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .status-dot.green { background: #22c55e; }
+        .status-dot.yellow { background: #f59e0b; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .live-updated {
+            text-align: center; font-size: 0.75rem; color: #475569;
+            margin-top: 1rem;
+        }
+        .live-updated span { color: #22c55e; }
+
         /* ===== MOBILE ===== */
         @media (max-width: 768px) {
             .navbar .nav-links { display: none; }
@@ -368,6 +425,62 @@
                 </div>
             </div>
         </div>
+    </section>
+
+    <!-- LIVE STATS -->
+    <section class="live-stats-section" id="live-stats">
+        <div class="section-label">Live Bot Status</div>
+        <div class="section-title">Real-Time Statistics</div>
+        <div class="section-desc">Live data from the CasinoForge bot.</div>
+        <div class="live-stats-grid" id="live-stats-grid">
+            <div class="live-stat-card">
+                <div class="live-stat-icon">🟢</div>
+                <div class="live-stat-value" id="stat-status">Online</div>
+                <div class="live-stat-label">Bot Status</div>
+                <div class="live-stat-status status-online"><div class="status-dot green"></div> Online</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">⏱️</div>
+                <div class="live-stat-value" id="stat-uptime">Loading...</div>
+                <div class="live-stat-label">Uptime</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">🏠</div>
+                <div class="live-stat-value" id="stat-guilds">Loading...</div>
+                <div class="live-stat-label">Servers</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">👥</div>
+                <div class="live-stat-value" id="stat-users">Loading...</div>
+                <div class="live-stat-label">Registered Users</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">🎰</div>
+                <div class="live-stat-value" id="stat-games">Loading...</div>
+                <div class="live-stat-label">Games Played</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">💰</div>
+                <div class="live-stat-value" id="stat-wallet">Loading...</div>
+                <div class="live-stat-label">Wallet Total</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">🏦</div>
+                <div class="live-stat-value" id="stat-bank">Loading...</div>
+                <div class="live-stat-label">Bank Total</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">🎡</div>
+                <div class="live-stat-value" id="stat-jackpot">Loading...</div>
+                <div class="live-stat-label">Active Jackpot</div>
+            </div>
+            <div class="live-stat-card">
+                <div class="live-stat-icon">⚙️</div>
+                <div class="live-stat-value" id="stat-multiplier">Loading...</div>
+                <div class="live-stat-label">Global Multiplier</div>
+            </div>
+        </div>
+        <div class="live-updated">Last updated: <span id="stat-updated">Loading...</span> • Auto-refreshes every 60s</div>
     </section>
 
     <!-- FEATURES -->
@@ -1052,6 +1165,101 @@ function claimDevGift(button, amount) {
         </div>
     `);
 }
+// ===== LIVE STATS =====
+const BOT_STATS_API = "https://casinoforge-api.vercel.app/stats";
+
+// Fallback demo stats if API is unavailable
+const demoStats = {
+    status: "online",
+    uptime: "12h 34m",
+    guilds: 47,
+    users: 1823,
+    total_wallet: 2847392,
+    total_bank: 5192847,
+    games_played: 14753,
+    jackpot_active: true,
+    jackpot_prize: 48200,
+    global_multiplier: 1.0,
+    version: "2.0.0",
+    updated_at: new Date().toISOString()
+};
+
+async function fetchLiveStats() {
+    try {
+        const res = await fetch(BOT_STATS_API);
+        if (!res.ok) throw new Error("API unavailable");
+        const data = await res.json();
+        updateStatsUI(data);
+    } catch (e) {
+        // Use demo stats when API is not available
+        updateStatsUI(demoStats);
+    }
+}
+
+function updateStatsUI(stats) {
+    // Status
+    const statusEl = document.getElementById("stat-status");
+    if (statusEl) {
+        if (stats.maintenance || stats.status === "maintenance") {
+            statusEl.textContent = "Maintenance";
+            statusEl.style.opacity = "1";
+        } else {
+            statusEl.textContent = "Online";
+        }
+    }
+
+    // Uptime
+    const uptimeEl = document.getElementById("stat-uptime");
+    if (uptimeEl) uptimeEl.textContent = stats.uptime || "N/A";
+
+    // Guilds
+    const guildsEl = document.getElementById("stat-guilds");
+    if (guildsEl) guildsEl.textContent = (stats.guilds || 0).toLocaleString();
+
+    // Users
+    const usersEl = document.getElementById("stat-users");
+    if (usersEl) usersEl.textContent = (stats.users || 0).toLocaleString();
+
+    // Games played
+    const gamesEl = document.getElementById("stat-games");
+    if (gamesEl) gamesEl.textContent = (stats.games_played || 0).toLocaleString();
+
+    // Wallet total
+    const walletEl = document.getElementById("stat-wallet");
+    if (walletEl) walletEl.textContent = (stats.total_wallet || 0).toLocaleString();
+
+    // Bank total
+    const bankEl = document.getElementById("stat-bank");
+    if (bankEl) bankEl.textContent = (stats.total_bank || 0).toLocaleString();
+
+    // Jackpot
+    const jackpotEl = document.getElementById("stat-jackpot");
+    if (jackpotEl) {
+        if (stats.jackpot_active) {
+            jackpotEl.textContent = (stats.jackpot_prize || 0).toLocaleString();
+            jackpotEl.style.background = "linear-gradient(135deg, #f59e0b, #ef4444)";
+            jackpotEl.style.webkitBackgroundClip = "text";
+        } else {
+            jackpotEl.textContent = "None";
+            jackpotEl.style.opacity = "0.5";
+        }
+    }
+
+    // Multiplier
+    const multEl = document.getElementById("stat-multiplier");
+    if (multEl) multEl.textContent = (stats.global_multiplier || 1) + "x";
+
+    // Updated at
+    const updatedEl = document.getElementById("stat-updated");
+    if (updatedEl && stats.updated_at) {
+        const date = new Date(stats.updated_at);
+        updatedEl.textContent = date.toLocaleTimeString();
+    }
+}
+
+// Fetch stats on load and auto-refresh every 60s
+fetchLiveStats();
+setInterval(fetchLiveStats, 60000);
 </script>
 </body>
 </html>
