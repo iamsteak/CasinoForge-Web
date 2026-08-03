@@ -1,6 +1,6 @@
 {
   "name": "casinoforge-website",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "node server.js",
@@ -9,6 +9,7 @@
     "lint": "echo 'No lint step required'"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "pg": "^8.22.0"
   }
 }
